@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stunning Currency Converter & Calculator</title>
+    <style>
+        /* --- RESET & BASE --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+            position: relative;
+            padding: 20px 0;
+        }
+
+        /* --- ANIMATED BACKGROUND --- */
+        .bg-blur {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+            z-index: 0;
+            animation: float 15s infinite ease-in-out;
+        }
+        .bg-1 { width: 400px; height: 400px; background: #6366f1; top: -100px; left: -100px; }
+        .bg-2 { width: 500px; height: 500px; background: #ec4899; bottom: -150px; right: -150px; animation-delay: -5s; }
+        .bg-3 { width: 300px; height: 300px; background: #0ea5e9; top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        /* --- MAIN LAYOUT CONTAINER --- */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            align-items: stretch; /* Ensures both cards have the exact same height */
+        }
+
+        /* Side-by-side on large screens */
+        @media (min-width: 900px) {
+            .app-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* --- GLASS CARD (Shared) --- */
+        .card {
+            width: 100%;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column; /* Allows internal flex alignment */
+        }
+
+        /* Specific alignments for each card to balance the height */
+        .calculator-card {
+            justify-content: center; /* Centers calculator content vertically */
+        }
+
+        .converter-card .result-card {
+            flex-grow: 1; /* Expands to fill available vertical space */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- HEADER --- */
+        .header { text-align: center; margin-bottom: 1.5rem; }
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #e2e8f0, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+        .header p { font-size: 0.85rem; color: #94a3b8; }
+
+        /* =========================================
+           CALCULATOR STYLES 
+           ========================================= */
+        .calc-display {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            text-align: right;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            overflow: hidden;
+        }
+        .calc-expression {
+            font-size: 1rem;
+            color: #94a3b8;
+            min-height: 1.5rem;
+            word-break: break-all;
+            margin-bottom: 0.5rem;
+        }
+        .calc-result {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+            word-break: break-all;
+            line-height: 1.1;
+        }
+
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+        .calc-btn {
+            padding: 1.1rem 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #fff;
+            background: rgba(15, 23, 42, 0.6);
+            font-family: inherit;
+        }
+        .calc-btn:hover {
+            background: rgba(30, 41, 59, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .calc-btn:active {
+            transform: translateY(0);
+        }
+        .calc-btn.operator {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-color: transparent;
+        }
+        .calc-btn.operator:hover {
+            background: linear-gradient(135deg, #7c7ff7, #9d78f7);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+        .calc-btn.clear {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+        .calc-btn.clear:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+        .calc-btn.equals {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-color: transparent;
+        }
+        .calc-btn.equals:hover {
+            background: linear-gradient(135deg, #34d399, #10b981);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+        .calc-btn.span-two {
+            grid-column: span 2;
+        }
+
+        /* =========================================
+           CONVERTER STYLES 
+           ========================================= */
+        .input-group { margin-bottom: 1.25rem; }
+        .input-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .amount-input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.9rem 1.25rem;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #fff;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        .amount-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+
+        .currency-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .select-wrapper { flex: 1; position: relative; }
+        .currency-select {
+            width: 100%;
+            appearance: none;
+            -webkit-appearance: none;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        .currency-select:focus { outline: none; border-color: #6366f1; }
+        .select-wrapper::after {
+            content: '▾';
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            pointer-events: none;
+            margin-top: 10px;
+        }
+
+        .swap-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            flex-shrink: 0;
+            margin-top: 18px;
+        }
+        .swap-btn:hover { transform: scale(1.1) rotate(180deg); }
+        .swap-btn svg { width: 18px; height: 18px; fill: white; }
+
+        .result-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 16px;
+            padding: 1.25rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .result-amount { font-size: 2rem; font-weight: 800; color: #fff; word-break: break-all; }
+        .result-currency { font-size: 1.1rem; color: #a5b4fc; font-weight: 600; margin-left: 0.5rem; }
+        .result-rate { margin-top: 0.5rem; font-size: 0.8rem; color: #94a3b8; }
+
+        .footer { text-align: center; font-size: 0.7rem; color: #64748b; margin-top: 1rem; }
+
+        .spinner {
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,.3); border-radius: 50%;
+            border-top-color: #fff; animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-text { color: #f87171; font-weight: 500; }
+
+        @media (max-width: 480px) {
+            .card { padding: 1.5rem; }
+            .result-amount { font-size: 1.6rem; }
+            .calc-result { font-size: 2rem; }
+            .calc-btn { padding: 0.9rem 0; font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Animated Background -->
+    <div class="bg-blur bg-1"></div>
+    <div class="bg-blur bg-2"></div>
+    <div class="bg-blur bg-3"></div>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        
+        <!-- ==========================================
+             LEFT SIDE: CALCULATOR
+             ========================================== -->
+        <div class="card calculator-card">
+            <div class="header">
+                <h1>Calculator</h1>
+                <p>Quick calculations</p>
+            </div>
+
+            <div class="calc-display">
+                <div class="calc-expression" id="calc-expr"></div>
+                <div class="calc-result" id="calc-result">0</div>
+            </div>
+
+            <div class="calc-buttons">
+                <button class="calc-btn clear" onclick="clearCalc()">AC</button>
+                <button class="calc-btn" onclick="deleteCalc()">⌫</button>
+                <button class="calc-btn" onclick="handlePercent()">%</button>
+                <button class="calc-btn operator" onclick="chooseOperation('÷')">÷</button>
+
+                <button class="calc-btn" onclick="appendNumber('7')">7</button>
+                <button class="calc-btn" onclick="appendNumber('8')">8</button>
+                <button class="calc-btn" onclick="appendNumber('9')">9</button>
+                <button class="calc-btn operator" onclick="chooseOperation('×')">×</button>
+
+                <button class="calc-btn" onclick="appendNumber('4')">4</button>
+                <button class="calc-btn" onclick="appendNumber('5')">5</button>
+                <button class="calc-btn" onclick="appendNumber('6')">6</button>
+                <button class="calc-btn operator" onclick="chooseOperation('-')">-</button>
+
+                <button class="calc-btn" onclick="appendNumber('1')">1</button>
+                <button class="calc-btn" onclick="appendNumber('2')">2</button>
+                <button class="calc-btn" onclick="appendNumber('3')">3</button>
+                <button class="calc-btn operator" onclick="chooseOperation('+')">+</button>
+
+                <button class="calc-btn span-two" onclick="appendNumber('0')">0</button>
+                <button class="calc-btn" onclick="appendNumber('.')">.</button>
+                <button class="calc-btn equals" onclick="calculate()">=</button>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             RIGHT SIDE: CURRENCY CONVERTER
+             ========================================== -->
+        <div class="card converter-card">
+            <div class="header">
+                <h1>Currency Converter</h1>
+                <p>Live rates for 160+ currencies</p>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label" for="amount">Amount</label>
+                <input type="number" id="amount" class="amount-input" value="100" min="0" step="any">
+            </div>
+
+            <div class="currency-row">
+                <div class="select-wrapper">
+                    <label class="input-label" for="from">From</label>
+                    <select id="from" class="currency-select"></select>
+                </div>
+
+                <button class="swap-btn" id="swap" title="Swap currencies">
+                    <svg viewBox="0 0 24 24"><path d="M7.5 21.5L2 16l5.5-5.5 1.4 1.4-3.1 3.1H19v2H5.8l3.1 3.1-1.4 1.4zM16.5 2.5L22 8l-5.5 5.5-1.4-1.4 3.1-3.1H5v-2h13.2l-3.1-3.1 1.4-1.4z"/></svg>
+                </button>
+
+                <div class="select-wrapper">
+                    <label class="input-label" for="to">To</label>
+                    <select id="to" class="currency-select"></select>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <div>
+                    <span class="result-amount" id="result-val">0.00</span>
+                    <span class="result-currency" id="result-cur">USD</span>
+                </div>
+                <div class="result-rate" id="result-rate">Loading rates...</div>
+            </div>
+
+            <div class="footer" id="footer">
+                Powered by ExchangeRate-API
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================
+           CALCULATOR LOGIC
+           ========================================= */
+        let currentOperand = '0';
+        let previousOperand = '';
+        let operation = null;
+        let shouldResetScreen = false;
+
+        const calcExpr = document.getElementById('calc-expr');
+        const calcRes = document.getElementById('calc-result');
+
+        function updateCalcDisplay() {
+            calcRes.textContent = currentOperand;
+            if (operation != null) {
+                calcExpr.textContent = `${previousOperand} ${operation}`;
+            } else {
+                calcExpr.textContent = '';
+            }
+        }
+
+        function appendNumber(number) {
+            if (currentOperand === '0' || shouldResetScreen) {
+                currentOperand = number === '.' ? '0.' : number;
+                shouldResetScreen = false;
+            } else {
+                if (number === '.' && currentOperand.includes('.')) return;
+                currentOperand += number;
+            }
+            updateCalcDisplay();
+        }
+
+        function chooseOperation(op) {
+            if (currentOperand === '') return;
+            if (previousOperand !== '') {
+                calculate();
+            }
+            operation = op;
+            previousOperand = currentOperand;
+            shouldResetScreen = true;
+            updateCalcDisplay();
+        }
+
+        function calculate() {
+            let computation;
+            const prev = parseFloat(previousOperand);
+            const current = parseFloat(currentOperand);
+            if (isNaN(prev) || isNaN(current)) return;
+
+            switch (operation) {
+                case '+': computation = prev + current; break;
+                case '-': computation = prev - current; break;
+                case '×': computation = prev * current; break;
+                case '÷': 
+                    if (current === 0) {
+                        currentOperand = 'Error';
+                        operation = null;
+                        previousOperand = '';
+                        shouldResetScreen = true;
+                        updateCalcDisplay();
+                        return;
+                    }
+                    computation = prev / current; 
+                    break;
+                default: return;
+            }
+
+            let result = Math.round(computation * 1e10) / 1e10;
+            currentOperand = result.toString();
+            
+            operation = null;
+            previousOperand = '';
+            shouldResetScreen = true;
+            updateCalcDisplay();
+        }
+
+        function clearCalc() {
+            currentOperand = '0';
+            previousOperand = '';
+            operation = null;
+            updateCalcDisplay();
+        }
+
+        function deleteCalc() {
+            if (shouldResetScreen || currentOperand === 'Error') {
+                clearCalc();
+                return;
+            }
+            currentOperand = currentOperand.toString().slice(0, -1);
+            if (currentOperand === '') currentOperand = '0';
+            updateCalcDisplay();
+        }
+
+        function handlePercent() {
+            if (currentOperand === '' || currentOperand === 'Error') return;
+            let current = parseFloat(currentOperand);
+            currentOperand = (current / 100).toString();
+            updateCalcDisplay();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') appendNumber(e.key);
+            if (e.key === '.') appendNumber('.');
+            if (e.key === '+') chooseOperation('+');
+            if (e.key === '-') chooseOperation('-');
+            if (e.key === '*') chooseOperation('×');
+            if (e.key === '/') { e.preventDefault(); chooseOperation('÷'); }
+            if (e.key === '%') handlePercent();
+            if (e.key === 'Enter' || e.key === '=') calculate();
+            if (e.key === 'Backspace') deleteCalc();
+            if (e.key === 'Escape') clearCalc();
+        });
+
+
+        /* =========================================
+           CURRENCY CONVERTER LOGIC
+           ========================================= */
+        const amountEl = document.getElementById('amount');
+        const fromEl = document.getElementById('from');
+        const toEl = document.getElementById('to');
+        const swapBtn = document.getElementById('swap');
+        const resultVal = document.getElementById('result-val');
+        const resultCur = document.getElementById('result-cur');
+        const resultRate = document.getElementById('result-rate');
+        const footer = document.getElementById('footer');
+
+        let currentRates = {};
+        let currentBase = 'USD';
+
+        const countryMap = {
+            USD:'US', EUR:'EU', GBP:'GB', JPY:'JP', AUD:'AU', CAD:'CA', CHF:'CH', CNY:'CN', 
+            SEK:'SE', NZD:'NZ', MXN:'MX', SGD:'SG', HKD:'HK', NOK:'NO', KRW:'KR', TRY:'TR', 
+            RUB:'RU', INR:'IN', BRL:'BR', ZAR:'ZA', DKK:'DK', PLN:'PL', TWD:'TW', THB:'TH', 
+            IDR:'ID', HUF:'HU', CZK:'CZ', ILS:'IL', CLP:'CL', PHP:'PH', AED:'AE', COP:'CO', 
+            SAR:'SA', MYR:'MY', RON:'RO', BGN:'BG', HRK:'HR', ISK:'IS', PEN:'PE', UYU:'UY', 
+            ARS:'AR', EGP:'EG', JMD:'JM', LKR:'LK', PKR:'PK', BDT:'BD', VND:'VN', KZT:'KZ',
+            UAH:'UA', NGN:'NG', GHS:'GH', KES:'KE', TZS:'TZ', UGX:'UG', XOF:'SN', XAF:'CM'
+        };
+
+        function getFlag(currencyCode) {
+            const country = countryMap[currencyCode] || currencyCode.substring(0, 2);
+            if (country === 'EU') return '🇪🇺';
+            if (country === 'XO' || country === 'XA') return '🌍';
+            try {
+                const codePoints = country.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0));
+                return String.fromCodePoint(...codePoints);
+            } catch { return '🌐'; }
+        }
+
+        async function initConverter() {
+            try {
+                resultRate.innerHTML = '<span class="spinner"></span> Fetching live rates...';
+                const res = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await res.json();
+
+                if (data.result !== 'success') throw new Error('API Error');
+
+                const currencies = Object.keys(data.rates).sort();
+                fromEl.innerHTML = '';
+                toEl.innerHTML = '';
+
+                currencies.forEach(code => {
+                    const flag = getFlag(code);
+                    fromEl.add(new Option(`${flag} ${code}`, code));
+                    toEl.add(new Option(`${flag} ${code}`, code));
+                });
+
+                fromEl.value = 'USD';
+                toEl.value = 'EUR';
+                
+                await loadRates('USD');
+                calculateCurrency();
+                updateTime();
+
+            } catch (err) {
+                resultRate.innerHTML = '<span class="error-text">Failed to load data.</span>';
+                console.error(err);
+            }
+        }
+
+        async function loadRates(baseCurrency) {
+            if (baseCurrency === currentBase && Object.keys(currentRates).length > 0) return;
+            try {
+                resultRate.innerHTML = '<span class="spinner"></span> Updating...';
+                const res = await fetch(`https://open.er-api.com/v6/latest/${baseCurrency}`);
+                const data = await res.json();
+                if (data.result === 'success') {
+                    currentRates = data.rates;
+                    currentBase = baseCurrency;
+                }
+            } catch (err) { console.error("Rate fetch failed", err); }
+        }
+
+        function calculateCurrency() {
+            const amount = parseFloat(amountEl.value);
+            const from = fromEl.value;
+            const to = toEl.value;
+
+            if (isNaN(amount) || amount < 0) {
+                resultVal.textContent = '0.00';
+                resultRate.textContent = 'Enter a valid amount';
+                return;
+            }
+
+            if (from !== currentBase) {
+                loadRates(from).then(() => performCalculation(amount, from, to));
+            } else {
+                performCalculation(amount, from, to);
+            }
+        }
+
+        function performCalculation(amount, from, to) {
+            const rate = currentRates[to];
+            if (!rate) {
+                resultVal.textContent = '---';
+                resultRate.textContent = 'Rate unavailable';
+                return;
+            }
+
+            const converted = amount * rate;
+            resultVal.textContent = converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+            resultCur.textContent = to;
+            
+            const fromFlag = getFlag(from);
+            const toFlag = getFlag(to);
+            resultRate.textContent = `${fromFlag} 1 ${from} = ${rate.toFixed(4)} ${toFlag} ${to}`;
+        }
+
+        function updateTime() {
+            const now = new Date();
+            footer.textContent = `Live Rates • Updated ${now.toLocaleTimeString()}`;
+        }
+
+        amountEl.addEventListener('input', calculateCurrency);
+        fromEl.addEventListener('change', () => { loadRates(fromEl.value).then(() => { calculateCurrency(); updateTime(); }); });
+        toEl.addEventListener('change', calculateCurrency);
+        swapBtn.addEventListener('click', () => {
+            const temp = fromEl.value;
+            fromEl.value = toEl.value;
+            toEl.value = temp;
+            loadRates(fromEl.value).then(() => { calculateCurrency(); updateTime(); });
+        });
+
+        initConverter();
+    </script>
+</body>
+</html>
